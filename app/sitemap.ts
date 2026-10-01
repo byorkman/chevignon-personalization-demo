@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
 import { products } from "@/data/products";
 
-/**
- * SOLUCIÓN DE EMERGENCIA PARA DEMO
- * Hardcodeamos la URL de Vercel para asegurar que Data Cloud 
- * vea las URLs correctas sin depender de variables de entorno.
- */
+// ESTA LÍNEA ES LA CLAVE: Evita que Vercel guarde el sitemap viejo
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Hardcodeamos la URL final para no depender de variables
   const BASE_URL = "https://chevignon-personalization-demo.vercel.app";
   const now = new Date();
 
