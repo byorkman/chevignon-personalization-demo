@@ -1,27 +1,19 @@
 import type { MetadataRoute } from "next";
 import { products } from "@/data/products";
 
-/**
- * Sitemap consumido por:
- *  - Google / motores de búsqueda (SEO)
- *  - Salesforce Personalization → Admin UI → Dataset → Catalog → Ingestion → Sitemap URL
- *
- * Personalization crawlea cada URL de producto, parsea el JSON-LD (schema.org/Product)
- * y sincroniza los atributos con el Catalog Object Type "Product" en Data Cloud.
- */
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
 export default function sitemap(): MetadataRoute.Sitemap {
+  // 1. Intentamos leer tu variable manual
+  // 2. Si no existe, intentamos leer la que Vercel pone por defecto (VERCEL_URL)
+  // 3. Si todo falla, localhost
+  const BASE_URL = 
+    process.env.NEXT_PUBLIC_SITE_URL || 
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${BASE_URL}/productos`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/productos?cat=hombre`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/productos?cat=mujer`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/productos?cat=ninos`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/productos?cat=accesorios`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/nuestra-historia`, lastModified: now, changeFrequency: "monthly", priority: 0.6 }
   ];
 
