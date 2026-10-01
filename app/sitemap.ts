@@ -1,14 +1,13 @@
 import type { MetadataRoute } from "next";
 import { products } from "@/data/products";
 
+/**
+ * SOLUCIÓN DE EMERGENCIA PARA DEMO
+ * Hardcodeamos la URL de Vercel para asegurar que Data Cloud 
+ * vea las URLs correctas sin depender de variables de entorno.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  // 1. Intentamos leer tu variable manual
-  // 2. Si no existe, intentamos leer la que Vercel pone por defecto (VERCEL_URL)
-  // 3. Si todo falla, localhost
-  const BASE_URL = 
-    process.env.NEXT_PUBLIC_SITE_URL || 
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
+  const BASE_URL = "https://chevignon-personalization-demo.vercel.app";
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [
