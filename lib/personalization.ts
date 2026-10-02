@@ -11,10 +11,13 @@ function sdk() {
   return window.SalesforceInteractions || null;
 }
 
+/**
+ * VISTA DE PRODUCTO
+ */
 export function trackProductView(p: Product) {
   const s = sdk();
   if (!s) return;
-  console.log("🚀 Enviando Producto:", p.sku); // Mira esto en la consola F12
+  console.log("🚀 Enviando Producto:", p.sku);
   
   s.sendEvent({
     interaction: {
@@ -27,12 +30,61 @@ export function trackProductView(p: Product) {
       sku: String(p.sku),
       productName: String(p.name),
       prodCategory: String(p.category),
-      price: Number(p.price), // Forzamos que sea número
+      price: Number(p.price),
       currency: "COP"
     }
   });
 }
 
+/**
+ * AGREGAR AL CARRITO (Corregida para aceptar los 3 argumentos del componente)
+ */
+export function trackAddToCart(p: Product, quantity: number, size?: string) {
+  const s = sdk();
+  if (!s) return;
+  console.log("🚀 Agregando al carrito:", p.sku, size);
+
+  s.sendEvent({
+    interaction: {
+      name: "Add To Cart",
+      eventType: "Chevignon_Engagement"
+    },
+    attributes: {
+      category: "Engagement",
+      interactionName: "Add To Cart",
+      sku: String(p.sku),
+      productName: String(p.name),
+      price: Number(p.price * quantity),
+      currency: "COP",
+      size: size || ""
+    }
+  });
+}
+
+/**
+ * ORDEN / COMPRA
+ */
+export function trackOrder(orderId: string, lines: CartLine[], totalValue: number) {
+  const s = sdk();
+  if (!s) return;
+  s.sendEvent({
+    interaction: {
+      name: "Order Completed",
+      eventType: "Chevignon_Engagement"
+    },
+    attributes: {
+      category: "Engagement",
+      interactionName: "Order Completed",
+      sku: orderId,
+      price: Number(totalValue),
+      currency: "COP"
+    }
+  });
+}
+
+/**
+ * IDENTIDAD (LOGIN)
+ */
 export function identify(user: { customerId: string; email: string; firstName?: string }) {
   const s = sdk();
   if (!s) return;
@@ -49,14 +101,36 @@ export function identify(user: { customerId: string; email: string; firstName?: 
   });
 }
 
-// Estos se quedan igual para que el Build no falle
-export function trackPageView(p: any) {}
-export function trackAddToCart(p: any, q: any) { trackProductView(p); }
-export function trackOrder(id: any, l: any, v: any) {
-    const s = sdk();
-    if(s) s.sendEvent({
-        interaction: { name: "Order Completed", eventType: "Chevignon_Engagement" },
-        attributes: { category: "Engagement", sku: id, price: Number(v), currency: "COP" }
-    });
+/**
+ * NAVEGACION
+ */
+export function trackPageView(page: { category?: string; name?: string; url?: string }) {
+  const s = sdk();
+  if (!s) return;
+  s.sendEvent({
+    interaction: {
+      name: "Page View: " + (page.name || "Home"),
+      eventType: "Chevignon_Engagement"
+    },
+    attributes: {
+      category: "Engagement",
+      prodCategory: page.category || "General"
+    }
+  });
 }
-export async function fetchCampaign(n: string) { return {}; }
+
+/**
+ * CAMPAÑAS (DUMMY PARA BUILD)
+ */
+export async function fetchCampaign(campaignName: string): Promise<any> {
+  const s = sdk();
+  if (!s) return {};
+  try {
+    return await new Promise((resolve) => {
+      s.getCampaign?.({ campaignName }, (payload: any) => resolve(payload || {}));
+      setTimeout(() => resolve({}), 1000);
+    });
+  } catch {
+    return {};
+  }
+}
