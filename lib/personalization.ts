@@ -11,14 +11,12 @@ function sdk() {
   return window.SalesforceInteractions || null;
 }
 
-/**
- * VISTA DE PRODUCTO
- */
 export function trackProductView(p: Product) {
   const s = sdk();
   if (!s) return;
-  console.log("🚀 Enviando Producto:", p.sku);
   
+  console.log("🚀 Enviando a Data Cloud:", p.sku);
+
   s.sendEvent({
     interaction: {
       name: "View Product",
@@ -26,24 +24,22 @@ export function trackProductView(p: Product) {
     },
     attributes: {
       category: "Engagement",
-      interactionName: "View Product",
-      sku: String(p.sku),
-      productName: String(p.name),
-      prodCategory: String(p.category),
-      price: Number(p.price),
-      currency: "COP"
+      // TRUCO: Envolvemos los campos en el DeveloperName del evento
+      Chevignon_Engagement: {
+        sku: String(p.sku),
+        productName: String(p.name),
+        prodCategory: String(p.category),
+        price: Number(p.price),
+        currency: "COP",
+        interactionName: "View Product"
+      }
     }
   });
 }
 
-/**
- * AGREGAR AL CARRITO (Corregida para aceptar los 3 argumentos del componente)
- */
 export function trackAddToCart(p: Product, quantity: number, size?: string) {
   const s = sdk();
   if (!s) return;
-  console.log("🚀 Agregando al carrito:", p.sku, size);
-
   s.sendEvent({
     interaction: {
       name: "Add To Cart",
@@ -51,19 +47,17 @@ export function trackAddToCart(p: Product, quantity: number, size?: string) {
     },
     attributes: {
       category: "Engagement",
-      interactionName: "Add To Cart",
-      sku: String(p.sku),
-      productName: String(p.name),
-      price: Number(p.price * quantity),
-      currency: "COP",
-      size: size || ""
+      Chevignon_Engagement: {
+        sku: String(p.sku),
+        productName: String(p.name),
+        price: Number(p.price * quantity),
+        currency: "COP",
+        interactionName: "Add To Cart"
+      }
     }
   });
 }
 
-/**
- * ORDEN / COMPRA
- */
 export function trackOrder(orderId: string, lines: CartLine[], totalValue: number) {
   const s = sdk();
   if (!s) return;
@@ -74,17 +68,16 @@ export function trackOrder(orderId: string, lines: CartLine[], totalValue: numbe
     },
     attributes: {
       category: "Engagement",
-      interactionName: "Order Completed",
-      sku: orderId,
-      price: Number(totalValue),
-      currency: "COP"
+      Chevignon_Engagement: {
+        sku: orderId,
+        price: Number(totalValue),
+        currency: "COP",
+        interactionName: "Order Completed"
+      }
     }
   });
 }
 
-/**
- * IDENTIDAD (LOGIN)
- */
 export function identify(user: { customerId: string; email: string; firstName?: string }) {
   const s = sdk();
   if (!s) return;
@@ -92,45 +85,20 @@ export function identify(user: { customerId: string; email: string; firstName?: 
     interaction: { name: "Identity Login" },
     user: { identities: { emailAddress: user.email } },
     attributes: {
-      eventType: "Chevignon_Profile",
       category: "Profile",
-      email: user.email,
-      customerId: user.customerId,
-      firstName: user.firstName
+      // Lo mismo para el perfil
+      Chevignon_Profile: {
+        email: user.email,
+        customerId: user.customerId,
+        firstName: user.firstName,
+        eventType: "Chevignon_Profile",
+        category: "Profile"
+      }
     }
   });
 }
 
-/**
- * NAVEGACION
- */
-export function trackPageView(page: { category?: string; name?: string; url?: string }) {
-  const s = sdk();
-  if (!s) return;
-  s.sendEvent({
-    interaction: {
-      name: "Page View: " + (page.name || "Home"),
-      eventType: "Chevignon_Engagement"
-    },
-    attributes: {
-      category: "Engagement",
-      prodCategory: page.category || "General"
-    }
-  });
-}
-
-/**
- * CAMPAÑAS (DUMMY PARA BUILD)
- */
+export function trackPageView(page: any) {}
 export async function fetchCampaign(campaignName: string): Promise<any> {
-  const s = sdk();
-  if (!s) return {};
-  try {
-    return await new Promise((resolve) => {
-      s.getCampaign?.({ campaignName }, (payload: any) => resolve(payload || {}));
-      setTimeout(() => resolve({}), 1000);
-    });
-  } catch {
-    return {};
-  }
+  return {};
 }
