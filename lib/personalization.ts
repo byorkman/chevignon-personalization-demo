@@ -15,29 +15,6 @@ function sdk(): any | null {
   return window.SalesforceInteractions || null;
 }
 
-/**
- * ENGAGEMENT: Evento genérico de navegación
- */
-export function trackPageView(page: { category?: string; name?: string }) {
-  const s = sdk();
-  if (!s) return;
-  try {
-    s.sendEvent({
-      interaction: {
-        name: "Page View: " + (page.name || "Home"),
-        eventType: "Chevignon_Engagement",
-        attributes: {
-          category: "Engagement",
-          prodCategory: page.category || "General"
-        }
-      }
-    });
-  } catch (e) { console.warn(e); }
-}
-
-/**
- * ENGAGEMENT: Vista de producto (PDP)
- */
 export function trackProductView(p: Product) {
   const s = sdk();
   if (!s) return;
@@ -47,7 +24,9 @@ export function trackProductView(p: Product) {
         name: "View Product",
         eventType: "Chevignon_Engagement",
         attributes: {
+          // Estos nombres deben coincidir EXACTO con el Developer Name del Schema
           category: "Engagement",
+          interactionName: "View Product",
           sku: p.sku,
           productName: p.name,
           prodCategory: p.category,
@@ -59,9 +38,6 @@ export function trackProductView(p: Product) {
   } catch (e) { console.warn(e); }
 }
 
-/**
- * ENGAGEMENT: Agregar al carrito
- */
 export function trackAddToCart(p: Product, quantity: number, size?: string) {
   const s = sdk();
   if (!s) return;
@@ -72,21 +48,18 @@ export function trackAddToCart(p: Product, quantity: number, size?: string) {
         eventType: "Chevignon_Engagement",
         attributes: {
           category: "Engagement",
+          interactionName: "Add To Cart",
           sku: p.sku,
           productName: p.name,
           prodCategory: p.category,
           price: p.price * quantity,
-          currency: p.currency,
-          size: size || ""
+          currency: p.currency
         }
       }
     });
   } catch (e) { console.warn(e); }
 }
 
-/**
- * ENGAGEMENT: Compra finalizada
- */
 export function trackOrder(orderId: string, lines: CartLine[], totalValue: number) {
   const s = sdk();
   if (!s) return;
@@ -97,6 +70,7 @@ export function trackOrder(orderId: string, lines: CartLine[], totalValue: numbe
         eventType: "Chevignon_Engagement",
         attributes: {
           category: "Engagement",
+          interactionName: "Order Completed",
           sku: orderId,
           price: totalValue,
           currency: "COP"
@@ -106,9 +80,6 @@ export function trackOrder(orderId: string, lines: CartLine[], totalValue: numbe
   } catch (e) { console.warn(e); }
 }
 
-/**
- * PROFILE: Identidad del usuario (Login)
- */
 export function identify(user: { customerId: string; email: string; firstName?: string }) {
   const s = sdk();
   if (!s) return;
@@ -129,19 +100,5 @@ export function identify(user: { customerId: string; email: string; firstName?: 
   } catch (e) { console.warn(e); }
 }
 
-/**
- * NECESARIO PARA EL BUILD: Función para campañas (HeroBanner)
- */
-export async function fetchCampaign(campaignName: string): Promise<any | null> {
-  const s = sdk();
-  if (!s) return null;
-  try {
-    return await new Promise((resolve) => {
-      s.getCampaign?.({ campaignName }, (payload: any) => resolve(payload));
-      // Timeout de seguridad
-      setTimeout(() => resolve(null), 1500);
-    });
-  } catch {
-    return null;
-  }
-}
+// Necesario para que HeroBanner no falle en Vercel
+export async function fetchCampaign(name: string) { return null; }
