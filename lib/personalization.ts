@@ -4,97 +4,100 @@
 import type { CartLine } from "./cart";
 import type { Product } from "@/data/products";
 
-declare global { interface Window { SalesforceInteractions?: any; } }
+declare global { interface Window { SalesforceInteractions?: any } }
 
-function sdk() {
-  if (typeof window === "undefined") return null;
-  return window.SalesforceInteractions || null;
+// El beacon se carga de forma asíncrona: esperamos a que el SDK exista
+// (hasta 5 s) en vez de descartar el evento en silencio.
+function whenReady(retries = 20, delayMs = 250): Promise<any | null> {
+  return new Promise((resolve) => {
+    const attempt = (n: number) => {
+      const s = typeof window !== "undefined" ? window.SalesforceInteractions : null;
+      if (s?.sendEvent) return resolve(s);
+      if (n <= 0) return resolve(null);
+      setTimeout(() => attempt(n - 1), delayMs);
+    };
+    attempt(retries);
+  });
 }
 
-export function trackProductView(p: Product) {
-  const s = sdk();
-  if (!s) return;
-  
-  console.log("🚀 Enviando a Data Cloud:", p.sku);
+async function send(payload: any) {
+  const s = await whenReady();
+  if (!s) {
+    console.warn("[DC] SDK no disponible, evento descartado:", payload?.interaction?.name);
+    return;
+  }
+  try {
+    s.sendEvent(payload);
+  } catch (e) {
+    console.warn("[DC] Error enviando evento", e);
+  }
+}
 
-  s.sendEvent({
+// Estructura del SDK:
+//   interaction.name / eventType        -> actividad (Engagement)
+//   interaction.attributes.{campo}      -> llega al DLO como attributes{Campo} (sku -> attributesSku)
+//   user.identities / user.attributes   -> perfil (Profile); user.attributes llega sin prefijo
+
+export function trackProductView(p: Product) {
+  return send({
     interaction: {
       name: "View Product",
-      eventType: "Chevignon_Engagement"
-    },
-    attributes: {
-      category: "Engagement",
-      // TRUCO: Envolvemos los campos en el DeveloperName del evento
-      Chevignon_Engagement: {
+      eventType: "Chevignon_Engagement",
+      attributes: {
         sku: String(p.sku),
         productName: String(p.name),
         prodCategory: String(p.category),
         price: Number(p.price),
         currency: "COP",
-        interactionName: "View Product"
-      }
-    }
+      },
+    },
   });
 }
 
-export function trackAddToCart(p: Product, quantity: number, size?: string) {
-  const s = sdk();
-  if (!s) return;
-  s.sendEvent({
+export function trackAddToCart(p: Product, quantity: number, _size?: string) {
+  return send({
     interaction: {
       name: "Add To Cart",
-      eventType: "Chevignon_Engagement"
-    },
-    attributes: {
-      category: "Engagement",
-      Chevignon_Engagement: {
+      eventType: "Chevignon_Engagement",
+      attributes: {
         sku: String(p.sku),
         productName: String(p.name),
-        price: Number(p.price * quantity),
+        prodCategory: String(p.category),
+        price: Number(p.price),      // precio unitario; el total = price * quantity
+        quantity: Number(quantity),
         currency: "COP",
-        interactionName: "Add To Cart"
-      }
-    }
+      },
+    },
   });
 }
 
-export function trackOrder(orderId: string, lines: CartLine[], totalValue: number) {
-  const s = sdk();
-  if (!s) return;
-  s.sendEvent({
+export function trackOrder(orderId: string, _lines: CartLine[], totalValue: number) {
+  return send({
     interaction: {
       name: "Order Completed",
-      eventType: "Chevignon_Engagement"
-    },
-    attributes: {
-      category: "Engagement",
-      Chevignon_Engagement: {
-        sku: orderId,
-        price: Number(totalValue),
+      eventType: "Chevignon_Engagement",
+      attributes: {
+        orderId: String(orderId),
+        price: Number(totalValue),   // total del pedido
         currency: "COP",
-        interactionName: "Order Completed"
-      }
-    }
+      },
+    },
   });
 }
 
 export function identify(user: { customerId: string; email: string; firstName?: string }) {
-  const s = sdk();
-  if (!s) return;
-  s.sendEvent({
-    interaction: { name: "Identity Login" },
-    user: { identities: { emailAddress: user.email } },
-    attributes: {
-      category: "Profile",
-      // Lo mismo para el perfil
-      Chevignon_Profile: {
+  return send({
+    interaction: { name: "Identity Login", eventType: "Chevignon_Engagement" },
+    user: {
+      identities: { emailAddress: user.email },
+      attributes: {
+        eventType: "Chevignon_Profile",   // enruta al evento Profile del schema
+        category: "Profile",
         email: user.email,
         customerId: user.customerId,
-        firstName: user.firstName,
-        eventType: "Chevignon_Profile",
-        category: "Profile"
-      }
-    }
+        ...(user.firstName ? { firstName: user.firstName } : {}),
+      },
+    },
   });
 }
 
