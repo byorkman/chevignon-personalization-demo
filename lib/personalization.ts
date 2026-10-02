@@ -37,7 +37,6 @@ export function trackPageView(page: { category?: string; name?: string }) {
 
 /**
  * ENGAGEMENT: Vista de producto (PDP)
- * Mapea SKU, Nombre, Categoría y Precio al Schema
  */
 export function trackProductView(p: Product) {
   const s = sdk();
@@ -77,7 +76,8 @@ export function trackAddToCart(p: Product, quantity: number, size?: string) {
           productName: p.name,
           prodCategory: p.category,
           price: p.price * quantity,
-          currency: p.currency
+          currency: p.currency,
+          size: size || ""
         }
       }
     });
@@ -97,10 +97,9 @@ export function trackOrder(orderId: string, lines: CartLine[], totalValue: numbe
         eventType: "Chevignon_Engagement",
         attributes: {
           category: "Engagement",
-          interactionName: "Purchase",
+          sku: orderId,
           price: totalValue,
-          currency: "COP",
-          sku: orderId // Usamos el campo SKU para el ID de orden en la demo
+          currency: "COP"
         }
       }
     });
@@ -123,10 +122,26 @@ export function identify(user: { customerId: string; email: string; firstName?: 
           category: "Profile",
           email: user.email,
           customerId: user.customerId,
-          firstName: user.firstName,
-          loyaltyTier: "Silver"
+          firstName: user.firstName
         }
       }
     });
   } catch (e) { console.warn(e); }
+}
+
+/**
+ * NECESARIO PARA EL BUILD: Función para campañas (HeroBanner)
+ */
+export async function fetchCampaign(campaignName: string): Promise<any | null> {
+  const s = sdk();
+  if (!s) return null;
+  try {
+    return await new Promise((resolve) => {
+      s.getCampaign?.({ campaignName }, (payload: any) => resolve(payload));
+      // Timeout de seguridad
+      setTimeout(() => resolve(null), 1500);
+    });
+  } catch {
+    return null;
+  }
 }
