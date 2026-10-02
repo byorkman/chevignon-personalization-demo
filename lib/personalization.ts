@@ -22,8 +22,7 @@ export function trackProductView(p: Product) {
   const s = sdk();
   if (!s) return;
   
-  // Log para que veas en tu consola que los datos existen antes de enviarlos
-  console.log("Sending to Data Cloud:", p.sku, p.name);
+  console.log("Enviando Producto a Data Cloud:", p.sku);
 
   try {
     s.sendEvent({
@@ -31,7 +30,6 @@ export function trackProductView(p: Product) {
         name: "View Product",
         eventType: "Chevignon_Engagement"
       },
-      // PARA DATA CLOUD: Los atributos personalizados van FUERA de interaction
       attributes: {
         category: "Engagement",
         interactionName: "View Product",
@@ -131,4 +129,21 @@ export function trackPageView(page: { category?: string; name?: string }) {
   });
 }
 
-export async function fetchCampaign(name: string) { return null; }
+/**
+ * FIX PARA VERCEL BUILD:
+ * Retorna un objeto vacío para que el spread (...payload) no falle.
+ */
+export async function fetchCampaign(campaignName: string): Promise<any> {
+  const s = sdk();
+  if (!s) return {};
+  try {
+    return await new Promise((resolve) => {
+      s.getCampaign?.({ campaignName }, (payload: any) => {
+        resolve(payload || {});
+      });
+      setTimeout(() => resolve({}), 1000);
+    });
+  } catch {
+    return {};
+  }
+}
